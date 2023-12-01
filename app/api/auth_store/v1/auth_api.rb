@@ -1,9 +1,10 @@
 module AuthStore
   module V1
-    class Auth < Grape::API
+    class AuthApi < Grape::API
       version 'v1', using: :path
       format :json
       prefix :api
+      auth_helper = Helpers::AuthHelper
 
       resource :auth do
         desc 'user Log in'
@@ -12,7 +13,7 @@ module AuthStore
           requires :password, type: String
         end
         post 'login' do
-          {message: "login check"}
+          auth_helper.new(cookies).user_login(params)
         end
 
         desc 'user Sign up'
@@ -22,7 +23,7 @@ module AuthStore
           requires :password, type: String
         end
         post 'signup' do
-          {message: "signup check"}
+          auth_helper.new(cookies).user_signup(params)
         end
 
         desc 'user Log Out'
@@ -30,7 +31,7 @@ module AuthStore
           requires :emailid, type: String
         end
         get 'logout' do
-          {message: "logout check"}
+          auth_helper.new(cookies).user_logout(params)
         end
       end
     end

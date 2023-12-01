@@ -1,6 +1,6 @@
 module AuthStore
   module V1
-    class Post < Grape::API
+    class PostApi < Grape::API
       version 'v1', using: :path
       format :json
       prefix :api
