@@ -13,7 +13,7 @@ module AuthStore
 
           if user_id
             users = User.all
-            users.map { |user| { username: user.username, emailid: user.emilid } }
+            users.map { |user| { user_id: user.id, user_name: user.username, emailid: user.email_id } }
           else
             { message: "Invalid or expired token" }
           end
