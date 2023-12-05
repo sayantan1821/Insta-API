@@ -39,6 +39,10 @@ group :development, :test do
   gem 'byebug'
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ]
+  gem 'factory_bot_rails', '~> 5.1.1'
+  gem 'faker', '~> 2.16.0'
+  gem "rspec-rails", "~> 6.0"
+  gem "capybara"
 end
 
 group :development do
@@ -51,3 +55,4 @@ gem 'grape_on_rails_routes'
 gem 'activerecord'
 gem 'pg'
 gem 'jwt'
+gem "rspec"

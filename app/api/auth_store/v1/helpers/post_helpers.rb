@@ -2,7 +2,7 @@ module AuthStore
   module V1
     module Helpers
 
-    module PostHelpers
+      class PostHelpers
       def like_a_post(user_id, post_id)
         if user_id
           liked_post = Like.find_by(post_id: post_id, liked_by_user_id: user_id)
@@ -90,6 +90,16 @@ module AuthStore
 
       def get_user_posts(user_id)
         posts = Post.where(creator_id: user_id, is_deleted: false)
+        # resp_data = []
+        # posts.each do |post|
+        #   data = nil
+        #   data[:contents] = Content.where(post_id: post.id)
+        #   data[:tags] = Tag.where(post_id: post.id)
+        #   data[:likes] = Like.where(post_id: post.id)
+        #   data[:comments] = Comment.where(post_id: post.id)
+        #   resp_data << data
+        # end
+        # resp_data
       end
 
       def get_feed_posts(user_id)
