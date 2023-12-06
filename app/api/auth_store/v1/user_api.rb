@@ -10,7 +10,10 @@ module AuthStore
         desc "get user list"
         get "all" do
           auth_token = headers['x-auth-token']
+          # puts auth_token
+
           res = user_helper.new(cookies, auth_token).get_all_users
+          # byebug
           if res[:data]
             present users: res[:data], message: res[:message]
           else
@@ -25,14 +28,25 @@ module AuthStore
         post "follow/:following_id" do
           auth_token = headers['x-auth-token']
           following_id = params[:following_id]
-          user_helper.new(cookies, auth_token).follow_a_user(following_id)
+          res = user_helper.new(cookies, auth_token).follow_a_user(following_id)
+          if res[:data]
+            present data: res[:data], message: res[:message]
+          else
+            present error: res[:error]
+          end
+
         end
 
         desc "unfollow user"
         post "unfollow/:following_id" do
           auth_token = headers['x-auth-token']
           following_id = params[:following_id]
-          user_helper.new(cookies, auth_token).unfollow_a_user(following_id)
+          res = user_helper.new(cookies, auth_token).unfollow_a_user(following_id)
+          if res[:data]
+            present data: res[:data], message: res[:message]
+          else
+            present error: res[:error]
+          end
         end
       end
     end

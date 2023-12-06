@@ -10,12 +10,11 @@ module AuthStore
 
         def get_all_users
           user_id = validate_jwt_token
-
           if user_id
             users = User.all
             { data: users.map { |user| { user_id: user.id, user_name: user.username, emailid: user.email_id } }, message: 'All user data retrieved'}
           else
-            { error: "Invalid or expired token" }
+            { data: nil, error: "Invalid or expired token" }
           end
         end
 
@@ -25,18 +24,18 @@ module AuthStore
           if user_id && following_user
             follower_following_relation = Follower.find_by(follower_user_id: user_id, following_user_id: following_id)
             if follower_following_relation
-              { message: "user already follow that person" }
+              { error: "user already follow that person" }
             else
               relation = Follower.new(follower_user_id: user_id, following_user_id: following_id)
               if relation.save
                 followings = Follower.where(follower_user_id: user_id)
-                followings.map { |following| { follow_id: following.id, follower_id: following.follower_user_id, following_id: following.following_user_id } }
+                { data: followings.map { |following| { follow_id: following.id, follower_id: following.follower_user_id, following_id: following.following_user_id } }, message: 'User started following the another user.' }
               end
             end
           elsif following_user
-            { message: "Invalid or expired token" }
+            { error: "Invalid or expired token" }
           else
-            {message: "Requested user is invalid"}
+            {error: "Requested user is invalid"}
           end
         end
 
@@ -48,14 +47,14 @@ module AuthStore
             if follower_following_relation
               follower_following_relation.destroy
               followings = Follower.where(follower_user_id: user_id)
-              followings.map { |following| { follow_id: following.id, follower_id: following.follower_user_id, following_id: following.following_user_id } }
+              { data: followings.map { |following| { follow_id: following.id, follower_id: following.follower_user_id, following_id: following.following_user_id } }, message: 'user has unfollowed the other user' }
             else
-              {message: "User doesn't follow that person"}
+              {error: "User doesn't follow that person"}
             end
           elsif following_user
-            { message: "Invalid or expired token" }
+            { error: "Invalid or expired token" }
           else
-            {message: "Requested user is invalid"}
+            {error: "Requested user is invalid"}
           end
         end
 
@@ -65,7 +64,7 @@ module AuthStore
 
           begin
             decoded_token = JWT.decode(jwt_token, 'sayantan_secret_key', true, algorithm: 'HS256')
-            puts(decoded_token)
+            # puts(decoded_token)
             user_id = decoded_token[0]['user_id']
           rescue JWT::ExpiredSignature, JWT::VerificationError, JWT::DecodeError
             return nil
