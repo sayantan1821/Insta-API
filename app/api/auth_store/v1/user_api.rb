@@ -10,7 +10,12 @@ module AuthStore
         desc "get user list"
         get "all" do
           auth_token = headers['x-auth-token']
-          user_helper.new(cookies, auth_token).get_all_users
+          res = user_helper.new(cookies, auth_token).get_all_users
+          if res[:data]
+            present users: res[:data], message: res[:message]
+          else
+            error!(res[:error], 401)
+          end
         end
 
         desc "follow user"

@@ -13,7 +13,12 @@ module AuthStore
           requires :password, type: String
         end
         post 'login' do
-          auth_helper.new(cookies).user_login(params)
+          res = auth_helper.new(cookies).user_login(params)
+          if res[:res_user]
+            present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
+          else
+            error!(res[:error], 401)
+          end
         end
 
         desc 'user Sign up'
@@ -23,7 +28,13 @@ module AuthStore
           requires :password, type: String
         end
         post 'signup' do
-          auth_helper.new(cookies).user_signup(params)
+          res = auth_helper.new(cookies).user_signup(params)
+          if res[:res_user]
+            present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
+          else
+            error!(res[:error], 401)
+          end
+
         end
 
         desc 'user Log Out'
@@ -31,7 +42,12 @@ module AuthStore
           requires :emailid, type: String
         end
         get 'logout' do
-          auth_helper.new(cookies).user_logout(params)
+          res = auth_helper.new(cookies).user_logout(params)
+          if res[:res_user]
+            present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
+          else
+            error!(res[:error], 401)
+          end
         end
       end
     end
