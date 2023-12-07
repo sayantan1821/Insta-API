@@ -1,10 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe "UserApis", type: :request do
-  # include Rack::Test::Methods
-  def app
-    AuthStore::V1::UserApi
-  end
 
   before :each do
     @user = create(:user)
