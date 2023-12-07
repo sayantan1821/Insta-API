@@ -15,9 +15,9 @@ module AuthStore
       resource :post do
         desc "create new post"
         params do
-          requires :images, type: [File]
+          optional :images, type: [File]
           requires :caption, type: String
-          requires :tags, type: String
+          optional :tags, type: String
           requires :location, type: String
         end
         post "/create" do
@@ -25,25 +25,26 @@ module AuthStore
           if user_id
             data = create_post(user_id, params)
             if data
-              present :post, data[:post]
-              present :tags, data[:tags]
-              present :content, data[:contents]
-              present :message, "Post Created Successfully"
+              if data[:contents].length > 0
+                present data: data, message: "Post Created successfully with content"
+              else
+                present data: data, message: "Post Created successfully without content"
+              end
             else
-              present :message, "Post creation failed."
+              present :error, "Post creation failed."
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid Token."
           end
         end
 
         desc "update new post"
-        # params do
-        #   requires :caption, type: String
+        params do
+          optional :caption, type: String
         #   requires :tags, type: String
-        #   requires :location, type: String
+          optional :location, type: String
         #   requires :post_id, type: String
-        # end
+        end
         post "update/:post_id" do
           user_id = validate_jwt_token(headers['x-auth-token'])
           if user_id
@@ -52,8 +53,10 @@ module AuthStore
               present :post, post
               present :message, "Post updated successfully."
             else
-              present :message, "Failed to update post."
+              present :error, "Failed to update post."
             end
+          else
+            present :error, "Invalid or expired token."
           end
         end
 
@@ -64,10 +67,10 @@ module AuthStore
             if delete_post(user_id, params[:post_id])
               present :message, "Post Deleted softly"
             else
-              present :message, "Deletion failed."
+              present :error, "Can't delete the post."
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid or expired Token."
           end
 
         end
@@ -82,7 +85,7 @@ module AuthStore
               present :message, "User posts retrieved."
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid Token."
           end
         end
         #
@@ -96,7 +99,7 @@ module AuthStore
               present :message, "Feed posts retrieved."
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid Token."
           end
         end
         #
@@ -107,15 +110,14 @@ module AuthStore
         patch "like/:post_id" do
           user_id = validate_jwt_token(headers['x-auth-token'])
           if user_id
-            like = like_a_post(user_id, params[:post_id])
-            if like
-              present :like, like
-              present :message, "Like saved successfully."
+            res = like_a_post(user_id, params[:post_id])
+            if res[:liked_post]
+              present like: res[:liked_post], message: res[:message]
             else
-              present :message, "User have already liked the post."
+              present :error, res[:error]
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid Token."
           end
         end
         #
@@ -126,15 +128,14 @@ module AuthStore
         get "like/:post_id" do
           user_id = validate_jwt_token(headers['x-auth-token'])
           if user_id
-            likes = get_all_likes(user_id, params[:post_id])
-            if likes
-              present :likes, likes
-              present :message, "Likes retrieved successfully"
+            res = get_all_likes(user_id, params[:post_id])
+            if res[:likes]
+              present likes: res[:likes], message: res[:message]
             else
-              present :message, "Failed."
+              present error: res[:error]
             end
           else
-            present :message, "Invalid Token."
+            present :error, "Invalid or expired Token."
           end
         end
 
@@ -146,13 +147,14 @@ module AuthStore
         patch "comment/:post_id" do
           user_id = validate_jwt_token(headers['x-auth-token'])
           if user_id
-            comment_created = post_comment(user_id, params)
-            if comment_created
-              present :comment, comment_created
-              present :message, "Comment posted successfully"
+            res = post_comment(user_id, params)
+            if res[:comment]
+              present comment: res[:comment], message: "Comment posted successfully"
+            else
+              present error: res[:error]
             end
           else
-            present :message, "Invalid Token"
+            present :error, "Invalid or expired Token"
           end
         end
 
@@ -163,15 +165,14 @@ module AuthStore
         get "comment/:post_id" do
           user_id = validate_jwt_token(headers['x-auth-token'])
           if user_id
-            comments = get_all_post_comments(params, user_id)
-            if comments
-              present :comments, comments
-              present :message, "Comments retrieved successfully"
+            res = get_all_post_comments(params, user_id)
+            if res[:comments]
+              present comments: res[:comments], message: res[:message]
             else
-              present :message, "failed to retrieve messages."
+              present :error, res[:error]
             end
           else
-            present :message, "Invalid Token"
+            present :error, "Invalid Token"
           end
 
         end
