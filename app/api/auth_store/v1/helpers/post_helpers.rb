@@ -2,7 +2,7 @@ module AuthStore
   module V1
     module Helpers
 
-      module PostHelpers
+      class PostHelpers
         def like_a_post(user_id, post_id)
           post = Post.find_by(id: post_id)
           if post == nil
