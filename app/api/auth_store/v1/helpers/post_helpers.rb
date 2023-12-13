@@ -117,10 +117,10 @@ module AuthStore
           post = Post.find_by(id: post_id,
                               creator_id: user_id,
                               is_deleted: false)
-          if post.is_deleted
-            return {error: "post has already been deleted."}
-          end
           if post
+            if post.is_deleted
+              return {error: "post has already been deleted."}
+            end
             post.update({
                           is_deleted: true
                         })

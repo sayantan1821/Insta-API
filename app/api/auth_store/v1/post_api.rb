@@ -86,7 +86,7 @@ module AuthStore
           response = get_feed_posts(@user_id)
           if response.length > 0
             present :res, response
-            present :message, "User posts retrieved."
+            present :message, "Feed posts retrieved."
             status 200
           else
             present message: "No post found"

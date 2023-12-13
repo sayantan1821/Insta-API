@@ -52,7 +52,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         'tags': "#{@user2_id}",
         'location': "LOCATION"
       }, headers: { 'x-auth-token': @invalid_token }
-      expect(JSON.parse(response.body)).to include('error' => 'Invalid Token.')
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
 
     it 'should throw an error if caption is not present' do
@@ -86,7 +86,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         caption: "NEW_CAPTION",
         location: "NEW_LOCATION",
       }, headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
 
     it 'should throw a error if post_id or user_id is not valid' do
@@ -94,24 +94,24 @@ RSpec.describe "Api::V1::Posts", type: :request do
         caption: "NEW_CAPTION",
         location: "NEW_LOCATION",
       }, headers: @headers
-      expect(JSON.parse(response.body)).to include('error' => "Failed to update post.")
+      expect(JSON.parse(response.body)).to include('error' => "Post not found")
     end
   end
 
   describe "DELETE /api/v1/post/delete" do
     it 'should delete a post softly' do
       delete "#{@base_path}/delete/#{@post.id}", headers: @headers
-      expect(JSON.parse(response.body)).to include('message' => "Post Deleted softly")
+      expect(JSON.parse(response.body)).to include('message' => "Post deleted softly")
     end
 
     it 'should throw a error for wrong user id or post id' do
       delete "#{@base_path}/delete/#{@post.id}", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired Token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
 
     it 'should throw a error for wrong user id or post id' do
       delete "#{@base_path}/delete/#{@invalid_post_id}", headers: @headers
-      expect(JSON.parse(response.body)).to include('error' => "Can't delete the post.")
+      expect(JSON.parse(response.body)).to include('error' => "post not found")
     end
   end
 
@@ -123,7 +123,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should throw error for invalid token' do
       get "#{@base_path}/user_posts", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid Token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
   end
 
@@ -135,7 +135,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should throw error for invalid token' do
       get "#{@base_path}/feed_posts", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid Token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
   end
 
@@ -147,7 +147,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should through error for invalid token' do
       patch "#{@base_path}/like/#{@post.id}", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid Token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
     it 'should throw a error if user try to like a liked post' do
       patch "#{@base_path}/like/#{@post.id}", headers: @headers
@@ -169,14 +169,14 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should retrieve all like details of a post' do
       get "#{@base_path}/like/#{@post.id}", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired Token.")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
   end
 
   describe "PATCH /api/v1/post/comment/:post_id" do
     it 'should add comment to a post' do
       patch "#{@base_path}/comment/#{@post.id}", params:{'comment': "COMMENT"}, headers: @headers
-      expect(JSON.parse(response.body)).to include('message' => "Comment posted successfully")
+      expect(JSON.parse(response.body)).to include('message' => "Comment saved successfully.")
     end
 
     it 'should throw error if comment is missing from params' do
@@ -191,7 +191,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should throw error for invalid token' do
       patch "#{@base_path}/comment/#{@post.id}",params:{'comment': "COMMENT"}, headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired Token")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
   end
 
@@ -208,7 +208,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     it 'should throw error for invalid token' do
       get "#{@base_path}/comment/#{@post.id}", headers: {'x-auth-token': @invalid_token}
-      expect(JSON.parse(response.body)).to include('error' => "Invalid Token")
+      expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
   end
 end
