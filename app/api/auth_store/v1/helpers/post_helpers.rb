@@ -2,88 +2,93 @@ module AuthStore
   module V1
     module Helpers
 
-      class PostHelpers
+      module PostHelpers
         def like_a_post(user_id, post_id)
-          post = Post.find_by(id: post_id)
+          post = Post.find_by(id: post_id,
+                              is_deleted: false)
           if post == nil
             return { error: "post not found" }
           end
-          if user_id
-            liked_post = Like.find_by(post_id: post_id, liked_by_user_id: user_id)
-            if liked_post
-              { error: "User have already liked the post." }
-            else
-              Like.create(post_id: post_id, liked_by_user_id: user_id)
-              { liked_post: Like.find_by(post_id: post_id, liked_by_user_id: user_id), message: "Like saved successfully." }
-            end
+          liked_post = Like.find_by(post_id: post_id,
+                                    liked_by_user_id: user_id)
+          if liked_post
+            { error: "User have already liked the post." }
           else
-            { error: "Invalid or expired token" }
+            Like.create(post_id: post_id, liked_by_user_id: user_id)
+            { like_info: Like.find_by(post_id: post_id,
+                                       liked_by_user_id: user_id),
+              message: "Like saved successfully." }
           end
         end
 
         #
-        def get_all_likes(user_id, post_id)
-          post = Post.find_by(id: post_id)
+        def get_all_likes(post_id)
+          post = Post.find_by(id: post_id,
+                              is_deleted: false)
           if post == nil
             return { error: "post not found" }
           end
           # if user_id
-          { likes: Like.where(post_id: post_id), message: "Likes retrieved successfully" }
+          { likes: Like.where(post_id: post_id),
+            message: "Likes retrieved successfully" }
           # end
         end
 
         def post_comment(user_id, params)
-          post = Post.find_by(id: params[:post_id])
+          post = Post.find_by(id: params[:post_id],
+                              is_deleted: false)
           if post == nil
             return { error: "post not found" }
           end
-          comment = Comment.new(post_id: params[:post_id], commentator_id: user_id, content: params[:comment])
+          comment = Comment.new(post_id: params[:post_id],
+                                commentator_id: user_id,
+                                content: params[:comment])
           if comment.save
-            { comment: comment, message: "Comment saved successfully." }
+            { comment: comment,
+              message: "Comment saved successfully." }
           else
             { error: "Failed to save comment." }
           end
         end
 
-        def get_all_post_comments(params, user_id)
-          post = Post.find_by(id: params[:post_id])
+        def get_all_post_comments(params)
+          post = Post.find_by(id: params[:post_id],
+                              is_deleted: false)
           if post == nil
             return { error: "post not found" }
           end
-          if user_id
-            { comments: Comment.where(post_id: params[:post_id]), message: "Comments retrieved successfully" }
-          else
-            { error: "Invalid or expired token" }
-          end
+          { comments: Comment.where(post_id: params[:post_id]),
+            message: "Comments retrieved successfully" }
         end
 
         def update_post(user_id, params)
-          post = Post.find_by(id: params[:post_id], creator_id: user_id)
+          post = Post.find_by(id: params[:post_id],
+                              creator_id: user_id,
+                              is_deleted: false)
           if post == nil
-            return nil
+            return {error: "Post not found"}
           end
           post.caption = params[:caption] if params[:caption].present?
           # post.tags = params[:tags] if params[:tags].present?
           post.location = params[:location] if params[:location].present?
           if post.save
-            post
+            { post: post,
+              message: "Post updated successfully." }
           else
-            nil
+            {error: "Failed to update the post"}
           end
         end
 
         def create_post(user_id, params)
-          post = Post.create(caption: params[:caption], location: params[:location], creator_id: user_id, is_deleted: false)
-          # p params[:tags]
-
+          post = Post.create(caption: params[:caption],
+                             location: params[:location],
+                             creator_id: user_id,
+                             is_deleted: false)
           if params[:tags].present?
             tagged_ids = params[:tags].split(',')
-            # p tagged_ids
             tagged_ids.each do |tagged_id|
-              # unless User.exists?(id: user_id)
-              #   return {"error": "Invalid tagged user id"}
-              # end
-              Tag.create(tagged_user_id: tagged_id, post_id: post.id)
+              Tag.create(tagged_user_id: tagged_id,
+                         post_id: post.id)
             end
           end
           uploaded_pictures = params[:images]
@@ -97,7 +102,9 @@ module AuthStore
 
               File.open(file_path, 'wb') { |file| file.write(uploaded_picture[:tempfile].read) }
 
-              Content.create(post_id: post.id, content_type: 'image', content_url: file_path)
+              Content.create(post_id: post.id,
+                             content_type: 'image',
+                             content_url: file_path)
             end
           end
 
@@ -107,39 +114,66 @@ module AuthStore
         end
 
         def delete_post(user_id, post_id)
-          post = Post.find_by(id: post_id, creator_id: user_id)
+          post = Post.find_by(id: post_id,
+                              creator_id: user_id,
+                              is_deleted: false)
+          if post.is_deleted
+            return {error: "post has already been deleted."}
+          end
           if post
             post.update({
                           is_deleted: true
                         })
+            {post: post,
+             message: "Post deleted softly"}
           else
-            nil
+            {error: "post not found"}
           end
         end
-        def get_user_posts(user_id)
-          posts = Post.where(creator_id: user_id, is_deleted: false)
 
-          # resp_data = []
-          # posts.each do |post|
-          #   data = nil
-          #   data[:contents] = Content.where(post_id: post.id)
-          #   data[:tags] = Tag.where(post_id: post.id)
-          #   data[:likes] = Like.where(post_id: post.id)
-          #   data[:comments] = Comment.where(post_id: post.id)
-          #   resp_data << data
-          # end
-          # resp_data
+        def get_user_posts(user_id)
+          posts = Post.where(creator_id: user_id,
+                             is_deleted: false)
+
+          response_array = []
+
+          posts.each do |post|
+            post_attributes = post.attributes
+            post_attributes[:contents] = Content.where(post_id: post.id)
+            post_attributes[:tags] = Tag.where(post_id: post.id)
+            post_attributes[:likes] = Like.where(post_id: post.id)
+            post_attributes[:comments] = Comment.where(post_id: post.id)
+
+            response_array << post_attributes
+          end
+          response_array
         end
 
         def get_feed_posts(user_id)
           posts = Post.where.not(creator_id: user_id).where(is_deleted: false)
+
+          response_array = []
+
+          posts.each do |post|
+            post_attributes = post.attributes
+            post_attributes[:contents] = Content.where(post_id: post.id)
+            post_attributes[:tags] = Tag.where(post_id: post.id)
+            post_attributes[:likes] = Like.where(post_id: post.id)
+            post_attributes[:comments] = Comment.where(post_id: post.id)
+
+            response_array << post_attributes
+          end
+          response_array
         end
 
         def validate_jwt_token(jwt_token)
           return nil unless jwt_token
 
           begin
-            decoded_token = JWT.decode(jwt_token, 'sayantan_secret_key', true, algorithm: 'HS256')
+            decoded_token = JWT.decode(jwt_token,
+                                       'sayantan_secret_key',
+                                       true,
+                                       algorithm: 'HS256')
             # puts(decoded_token)
             user_id = decoded_token[0]['user_id']
           rescue JWT::ExpiredSignature, JWT::VerificationError, JWT::DecodeError

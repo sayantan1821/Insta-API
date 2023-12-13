@@ -5,13 +5,12 @@ module AuthStore
       format :json
       prefix :api
 
-      post_helper = Helpers::PostHelpers
+      use Middlewares::AuthMiddleware
+      helpers Helpers::PostHelpers
 
-      # before do
-      #   env['HTTP_X_AUTH_TOKEN'] = headers['X-Auth-Token']
-      #   ::TokenValidation.new(self).call(env)
-      # end
-
+      before do
+        @user_id = env['user_id']
+      end
       resource :post do
         desc "create new post"
         params do
@@ -21,20 +20,20 @@ module AuthStore
           requires :location, type: String
         end
         post "/create" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            data =  post_helper.new.create_post(user_id, params)
-            if data
-              if data[:contents].length > 0
-                present data: data, message: "Post Created successfully with content"
-              else
-                present data: data, message: "Post Created successfully without content"
-              end
+          response =  create_post(@user_id, params)
+          if response
+            if response[:contents].length > 0
+              present data: response,
+                      message: "Post Created successfully with content"
+              status 201
             else
-              present :error, "Post creation failed."
+              present data: response,
+                      message: "Post Created successfully without content"
+              status 201
             end
           else
-            present :error, "Invalid Token."
+            present :error, "Post creation failed."
+            status 400
           end
         end
 
@@ -43,63 +42,55 @@ module AuthStore
           optional :caption, type: String
         #   requires :tags, type: String
           optional :location, type: String
-        #   requires :post_id, type: String
+          requires :post_id, type: String
         end
         post "update/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            post = post_helper.new.update_post(user_id, params)
-            if post
-              present :post, post
-              present :message, "Post updated successfully."
-            else
-              present :error, "Failed to update post."
-            end
+          response = update_post(@user_id, params)
+          if response[:post]
+            present post: response[:post], message: response[:message]
+            status 200
           else
-            present :error, "Invalid or expired token."
+            present error: response[:error]
+            status 400
           end
         end
 
         desc "delete post"
         delete "delete/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            if post_helper.new.delete_post(user_id, params[:post_id])
-              present :message, "Post Deleted softly"
-            else
-              present :error, "Can't delete the post."
-            end
+          response = delete_post(@user_id, params[:post_id])
+          if response[:post]
+            present post: response[:post],
+                    message: response[:message]
+            status 200
           else
-            present :error, "Invalid or expired Token."
+            present error: response[:error]
+            status 400
           end
-
         end
-        #
+
         desc "get current user posts"
         get "user_posts" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            posts = post_helper.new.get_user_posts(user_id)
-            if posts
-              present :posts, posts
-              present :message, "User posts retrieved."
-            end
+          response = get_user_posts(@user_id)
+          if response.length > 0
+            present :res, response
+            present :message, "User posts retrieved."
+            status 200
           else
-            present :error, "Invalid Token."
+            present message: "No post found"
+            status 200
           end
         end
         #
         desc "get feed posts"
         get "feed_posts" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            posts = post_helper.new.get_feed_posts(user_id)
-            if posts
-              present :posts, posts
-              present :message, "Feed posts retrieved."
-            end
+          response = get_feed_posts(@user_id)
+          if response.length > 0
+            present :res, response
+            present :message, "User posts retrieved."
+            status 200
           else
-            present :error, "Invalid Token."
+            present message: "No post found"
+            status 200
           end
         end
         #
@@ -108,16 +99,13 @@ module AuthStore
           requires :post_id, type: Integer
         end
         patch "like/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            res = post_helper.new.like_a_post(user_id, params[:post_id])
-            if res[:liked_post]
-              present like: res[:liked_post], message: res[:message]
-            else
-              present :error, res[:error]
-            end
+          res = like_a_post(@user_id, params[:post_id])
+          if res[:like_info]
+            present info: res[:like_info], message: res[:message]
+            status 200
           else
-            present :error, "Invalid Token."
+            present :error, res[:error]
+            status 400
           end
         end
         #
@@ -126,16 +114,11 @@ module AuthStore
           requires :post_id, type: Integer
         end
         get "like/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            res = post_helper.new.get_all_likes(user_id, params[:post_id])
-            if res[:likes]
-              present likes: res[:likes], message: res[:message]
-            else
-              present error: res[:error]
-            end
+          response = get_all_likes(params[:post_id])
+          if response[:likes]
+            present likes: response[:likes], message: response[:message]
           else
-            present :error, "Invalid or expired Token."
+            present error: response[:error]
           end
         end
 
@@ -145,16 +128,14 @@ module AuthStore
           requires :post_id, type: Integer
         end
         patch "comment/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            res = post_helper.new.post_comment(user_id, params)
-            if res[:comment]
-              present comment: res[:comment], message: "Comment posted successfully"
-            else
-              present error: res[:error]
-            end
+          response = post_comment(@user_id, params)
+          if response[:comment]
+            present comment: response[:comment],
+                    message: response[:message]
+            status 201
           else
-            present :error, "Invalid or expired Token"
+            present error: response[:error]
+            status 400
           end
         end
 
@@ -163,16 +144,11 @@ module AuthStore
           requires :post_id, type: Integer
         end
         get "comment/:post_id" do
-          user_id = post_helper.new.validate_jwt_token(headers['x-auth-token'])
-          if user_id
-            res = post_helper.new.get_all_post_comments(params, user_id)
-            if res[:comments]
-              present comments: res[:comments], message: res[:message]
-            else
-              present :error, res[:error]
-            end
+          res = get_all_post_comments(params)
+          if res[:comments]
+            present comments: res[:comments], message: res[:message]
           else
-            present :error, "Invalid Token"
+            present :error, res[:error]
           end
 
         end

@@ -13,6 +13,9 @@ module AuthStore
         end
 
         def follow_a_user(user_id, following_id)
+          if user_id == following_id
+            return {error: "user can't follow himself"}
+          end
           following_user = User.find_by(id: following_id)
           # user_id = validate_jwt_token
           if following_user
@@ -32,6 +35,9 @@ module AuthStore
         end
 
         def unfollow_a_user(user_id, following_id)
+          if user_id == following_id
+            return {error: "user can't unfollow himself"}
+          end
           following_user = User.find_by(id: following_id)
           if following_user
             follower_following_relation = Follower.find_by(follower_user_id: user_id, following_user_id: following_id)
