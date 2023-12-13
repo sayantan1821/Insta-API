@@ -2,11 +2,6 @@ module AuthStore
   module V1
     module Helpers
       module UserHelper
-        # def initialize(cookies, auth_token)
-        #   @cookies = cookies
-        #   @cookies[:auth_token] = auth_token
-        #
-        # end
 
         def get_all_users(user_id)
           if user_id
