@@ -116,9 +116,9 @@ module AuthStore
             nil
           end
         end
-
         def get_user_posts(user_id)
           posts = Post.where(creator_id: user_id, is_deleted: false)
+
           # resp_data = []
           # posts.each do |post|
           #   data = nil

@@ -4,20 +4,22 @@ module AuthStore
       version 'v1', using: :path
       format :json
       prefix :api
-      user_helper = Helpers::UserHelper
+      use Middlewares::AuthMiddleware
+      # user_helper = Helpers::UserHelper
+      helpers Helpers::UserHelper
+
+      before do
+        @user_id = env['user_id']
+      end
 
       resource :user do
         desc "get user list"
         get "all" do
-          auth_token = headers['x-auth-token']
-          # puts auth_token
-
-          res = user_helper.new(cookies, auth_token).get_all_users
-          # byebug
-          if res[:data]
-            present users: res[:data], message: res[:message]
+          if @user_id
+            response = get_all_users(@user_id)
+            present users_data: response[:data], message: response[:message]
           else
-            error!(res[:error], 401)
+            error!("Invalid or Expired token.", 401)
           end
         end
 
@@ -26,27 +28,37 @@ module AuthStore
           requires :following_id, type: Integer, desc: "ID of the user to follow"
         end
         post "follow/:following_id" do
-          auth_token = headers['x-auth-token']
-          following_id = params[:following_id]
-          res = user_helper.new(cookies, auth_token).follow_a_user(following_id)
-          if res[:data]
-            present data: res[:data], message: res[:message]
+          if @user_id
+            following_id = params[:following_id]
+            response = follow_a_user(@user_id, following_id)
+            if response[:data]
+              present data: response[:data], message: response[:message]
+              status 200
+            else
+              present error: response[:error]
+              status 400
+            end
           else
-            present error: res[:error]
+            error!("Invalid or Expired token.", 401)
           end
-
         end
 
         desc "unfollow user"
         post "unfollow/:following_id" do
-          auth_token = headers['x-auth-token']
-          following_id = params[:following_id]
-          res = user_helper.new(cookies, auth_token).unfollow_a_user(following_id)
-          if res[:data]
-            present data: res[:data], message: res[:message]
+          if @user_id
+            following_id = params[:following_id]
+            response = unfollow_a_user(@user_id, following_id)
+            if response[:data]
+              present data: response[:data], message: response[:message]
+              status 200
+            else
+              present error: response[:error]
+              status 400
+            end
           else
-            present error: res[:error]
+            error!("Invalid or Expired token.", 401)
           end
+
         end
       end
     end
