@@ -3,4 +3,6 @@ class Post < ApplicationRecord
   has_many :contents
   has_many :likes
   has_many :comments
+  validates :caption, presence: true, length: {minimum: 1}
+  validates :location, presence: true, length: {minimum: 1}
 end

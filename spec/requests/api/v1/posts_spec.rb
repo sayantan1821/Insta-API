@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Api::V1::Posts", type: :request do
+  include AuthStore::V1::Helpers::AuthHelper
   # describe "GET /api/v1/posts" do
   #   it "works! (now write some real specs)" do
   #     get api_v1_posts_path
@@ -13,15 +14,15 @@ RSpec.describe "Api::V1::Posts", type: :request do
     @user2 = create(:user, username: 'sayantan', email_id: 'sayanta@kapat.com', password: '123456')
     @user2_id = @user2.id
     @post = create(:post, creator_id: @user.id)
-    @token, _ = AuthStore::V1::Helpers::AuthHelper.new(nil).generate_jwt_token(@user.id)
+    @token, _ = JwtService.generate_jwt_token(@user.id, 7)
     @invalid_token = "INVALID_TOKEN"
     @invalid_post_id = -1
-    @headers = { 'x-auth-token': @token }
+    @headers = { 'x-auth-token' => @token }
     @base_path = '/api/v1/post'
   end
 
   describe "POST /api/v1/post/create" do
-
+    # allow(AuthStore::V1::Helpers::AuthHelper).to receive(:generate_jwt_token)
     it 'should create a post with content' do
       images = [
         Rack::Test::UploadedFile.new("#{Rails.root}/spec/support/attachments/img_1.jpg", 'image/jpg'),
@@ -52,6 +53,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         'tags': "#{@user2_id}",
         'location': "LOCATION"
       }, headers: { 'x-auth-token': @invalid_token }
+
       expect(JSON.parse(response.body)).to include('error' => "Invalid or expired token")
     end
 

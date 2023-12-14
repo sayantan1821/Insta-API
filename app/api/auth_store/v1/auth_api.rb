@@ -4,7 +4,7 @@ module AuthStore
       version 'v1', using: :path
       format :json
       prefix :api
-      auth_helper = Helpers::AuthHelper
+      helpers Helpers::AuthHelper
 
       resource :auth do
         desc 'user Log in'
@@ -13,7 +13,7 @@ module AuthStore
           requires :password, type: String
         end
         post 'login' do
-          res = auth_helper.new(cookies).user_login(params)
+          res = user_login(params)
           if res[:res_user]
             present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
           else
@@ -28,7 +28,7 @@ module AuthStore
           requires :password, type: String
         end
         post 'signup' do
-          res = auth_helper.new(cookies).user_signup(params)
+          res = user_signup(params)
           if res[:res_user]
             present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
           else
@@ -42,7 +42,7 @@ module AuthStore
           requires :emailid, type: String
         end
         get 'logout' do
-          res = auth_helper.new(cookies).user_logout(params)
+          res = user_logout(params)
           if res[:res_user]
             present user: res[:res_user], token: res[:token], expires_at: res[:expires_at], message: res[:message]
           else
